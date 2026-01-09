@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
-
+from typing import List, Optional
 
 class EmbeddingService(ABC):
     @abstractmethod
@@ -12,3 +11,7 @@ class ClipboardService(ABC):
     
     @abstractmethod
     def set_text(self, text: str) -> None: pass
+
+class UIService(ABC):
+    @abstractmethod
+    def select_from_list(self, items: List[str]) -> Optional[str]: pass

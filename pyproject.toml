@@ -40,5 +40,5 @@ lint = "uv run ruff check . --fix"
 format = "uv run ruff format ."
 test = "PYTHONPATH=src uv run pytest"
 check = "task lint && task test"
-start = "uv run python src/gyrus/main.py"
+start = "PYTHONPATH=src uv run python -m gyrus.main"
 
