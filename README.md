@@ -3,10 +3,15 @@
 Gyrus is a brain-inspired, collective intelligence infrastructure for your clipboard. It builds a semantic memory graph using Hexagonal Architecture and asynchronous workflows.
 
 
+## 🚀 The Vision: Hebbian Intelligence
 
-## 🚀 The Vision: Hebb's Law
-Gyrus follows the **Hebb's Law principle**: *"Nodes that fire together, wire together."* - **M1 (Current)**: Local semantic capture and vector storage.
-- **M2 (Future)**: E2EE Trust Circles for collective knowledge sharing.
+Gyrus follows the **Hebb's Law principle**: *"Nodes that fire together, wire together."* Our architecture evolves through stages of increasing connectivity and collective consciousness.
+
+| Stage | Name | Focus | Status |
+| :--- | :--- | :--- | :--- |
+| **Stage 1** | **Synapse** | Local semantic capture, vector embeddings, and SQLite persistence. | **Active** |
+| **Stage 2** | **Cortex** | Visual recall interface (Rofi/Fzf), fuzzy search, and temporal decay. | Planned |
+| **Stage 3** | **Neural Circle** | E2EE Trust Circles, NATS-based P2P sync, and collective memory. | Research |
 
 ---
 
