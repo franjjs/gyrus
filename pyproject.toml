@@ -1,0 +1,44 @@
+[project]
+name = "gyrus"
+version = "0.1.0"
+description = "Semantic and collective clipboard infrastructure with local-first E2EE circles."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastembed>=0.7.4",
+    "numpy>=2.4.0",
+    "pynput>=1.8.1",
+    "pyperclip>=1.11.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.14.11",
+    "taskipy>=1.14.1",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+# E: pycodestyle errors, F: Pyflakes, I: isort (imports)
+select = ["E", "F", "I", "B"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["gyrus"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.taskipy.tasks]
+lint = "uv run ruff check . --fix"
+format = "uv run ruff format ."
+test = "PYTHONPATH=src uv run pytest"
+check = "task lint && task test"
+start = "uv run python src/gyrus/main.py"
+

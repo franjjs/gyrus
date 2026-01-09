@@ -1,0 +1,40 @@
+# --- Byte-compiled / optimized / DLL files ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Virtual Environment (uv) ---
+.venv/
+.python-version
+
+# --- Database & Local Storage (Gyrus Core) ---
+# Do not track local databases containing personal clipboard data
+*.db
+*.sqlite3
+
+# --- Testing & Coverage ---
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Secrets & Environment Variables ---
+.env
+.env.*
+.secrets/
+*.pem
+*.key
+
+# --- Distribution / Packaging ---
+build/
+dist/
+wheels/
+*.egg-info/
+
+# --- IDEs & OS specific files ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
