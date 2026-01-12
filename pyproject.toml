@@ -11,6 +11,9 @@ dependencies = [
     "pyperclip>=1.11.0",
 ]
 
+[project.scripts]
+gyrus = "gyrus.main:run_daemon"
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",

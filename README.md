@@ -73,5 +73,46 @@ Your project is pre-configured with:
 - **Capture Hotkey**: `Ctrl + Super + C`
 - **Output**: Logs to terminal and persists to `gyrus.db`.
 
+---
+
+## 🐧 Linux Installation & Systemd User Service
+
+### 1. Install System Dependencies
+```sh
+sudo apt-get update
+sudo apt-get install python3.12 python3.12-venv python3-pip x11-utils xclip rofi
+```
+
+### 2. Clone & Setup Project
+```sh
+git clone <your_repo_url>
+cd gyrus
+python3.12 -m venv .venv
+source .venv/bin/activate
+uv pip install -e .
+```
+
+### 3. Launch as User Systemd Service
+```sh
+bash scripts/install_linux_systemd_user_service.sh
+```
+This will create and start a user-level systemd service for Gyrus, with X11 clipboard access.
+
+#### Useful systemd user commands:
+- `systemctl --user status gyrus` — Check service status
+- `journalctl --user -u gyrus -f` — View logs
+- `systemctl --user stop gyrus` — Stop service
+- `systemctl --user restart gyrus` — Restart service
+- `systemctl --user disable gyrus` — Disable autostart
+- `systemctl --user is-enabled gyrus` — Check if enabled
+
+### 4. Uninstall User Service
+```sh
+bash scripts/uninstall_linux_systemd_user_service.sh
+```
+This will stop, disable, and remove the user systemd service for Gyrus.
+
+---
+
 ## 📄 License
 MIT License.
