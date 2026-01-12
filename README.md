@@ -48,6 +48,17 @@ We use **`uv`** for management and **`taskipy`** for automation.
 | `uv run task check` | **Linter (Ruff)** + **Tests (Pytest)**. Run this before every commit! |
 | `uv run task format` | Automatically fix PEP8 issues with Ruff |
 | `uv run task start` | Launch the Gyrus background daemon |
+| `uv run python scripts/show_gyrus_memory.py` | Display all stored memory nodes from the database |
+
+---
+
+## 📜 Utility Scripts
+
+Located in `scripts/`:
+
+- **`show_gyrus_memory.py`**: Display all nodes stored in the database with their circle_id, content, embeddings, and expiration time
+- **`install_gyrus_linux.sh`**: Install Gyrus as a systemd user service on Linux
+- **`uninstall_gyrus_linux.sh`**: Remove the Gyrus systemd user service
 
 ---
 
@@ -94,7 +105,7 @@ uv pip install -e .
 
 ### 3. Launch as User Systemd Service
 ```sh
-bash scripts/install_linux_systemd_user_service.sh
+bash scripts/install_gyrus_linux.sh
 ```
 This will create and start a user-level systemd service for Gyrus, with X11 clipboard access.
 
@@ -108,7 +119,7 @@ This will create and start a user-level systemd service for Gyrus, with X11 clip
 
 ### 4. Uninstall User Service
 ```sh
-bash scripts/uninstall_linux_systemd_user_service.sh
+bash scripts/uninstall_gyrus_linux.sh
 ```
 This will stop, disable, and remove the user systemd service for Gyrus.
 
