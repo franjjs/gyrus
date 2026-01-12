@@ -1,13 +1,18 @@
 import subprocess
-from gyrus.application.services import UIService
 from typing import List, Optional
+
+from gyrus.application.services import UIService
+
 
 class RofiAdapter(UIService):
     def select_from_list(self, items: List[str]) -> Optional[str]:
         input_str = "\n".join(items)
         try:
             process = subprocess.Popen(
-                ['rofi', '-dmenu', '-p', '🧠 Gyrus Recall', '-i', '-theme-str', 'window {width: 40%;}'],
+                [
+                    'rofi', '-dmenu', '-p', '🧠 Gyrus Recall',
+                    '-i', '-theme-str', 'window {width: 40%;}'
+                ],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 text=True

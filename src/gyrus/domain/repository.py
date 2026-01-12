@@ -10,7 +10,7 @@ class NodeRepository(ABC):
 
     @abstractmethod
     async def find_similar(
-        self, vector: List[float], limit: int = 10
+        self, vector: List[float], limit: int = 15
     ) -> List[Node]:
         pass
     

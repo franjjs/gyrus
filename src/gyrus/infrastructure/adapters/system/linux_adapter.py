@@ -1,8 +1,11 @@
 import logging
-from pynput import keyboard
-from gyrus.application.services import ClipboardService
 import subprocess
 from subprocess import DEVNULL
+
+from pynput import keyboard
+
+from gyrus.application.services import ClipboardService
+
 
 class LinuxClipboardAdapter(ClipboardService):        
     def get_text(self) -> str:
@@ -13,11 +16,17 @@ class LinuxClipboardAdapter(ClipboardService):
             return selection
         # Fallback to clipboard
         try:
-            text = subprocess.check_output(['wl-paste'], text=True, stderr=DEVNULL).strip()
-        except:
+            text = subprocess.check_output(
+                ['wl-paste'], text=True, stderr=DEVNULL
+            ).strip()
+        except Exception:
             try:
-                text = subprocess.check_output(['xclip', '-selection', 'clipboard', '-o'], text=True, stderr=DEVNULL).strip()
-            except:
+                text = subprocess.check_output(
+                    ['xclip', '-selection', 'clipboard', '-o'],
+                    text=True,
+                    stderr=DEVNULL
+                ).strip()
+            except Exception:
                 text = ""
         logging.info(f"Clipboard get_text: '{text[:40]}'")
         return text
@@ -27,17 +36,24 @@ class LinuxClipboardAdapter(ClipboardService):
         try:
             process = subprocess.Popen(['wl-copy'], stdin=subprocess.PIPE)
             process.communicate(input=text.encode())
-        except:
-            process = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
+        except Exception:
+            process = subprocess.Popen(
+                ['xclip', '-selection', 'clipboard'],
+                stdin=subprocess.PIPE
+            )
             process.communicate(input=text.encode())
 
     def get_selection(self) -> str:
         try:
             # Try to get X11 primary selection
-            text = subprocess.check_output(['xclip', '-selection', 'primary', '-o'], text=True, stderr=DEVNULL).strip()
+            text = subprocess.check_output(
+                ['xclip', '-selection', 'primary', '-o'],
+                text=True,
+                stderr=DEVNULL
+            ).strip()
             logging.info(f"Selection get_selection: '{text[:40]}'")
             return text
-        except:
+        except Exception:
             return ""
 
 class KeyboardListenerAdapter:

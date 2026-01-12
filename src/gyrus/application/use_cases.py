@@ -1,10 +1,12 @@
 import logging
+import time
+from datetime import datetime, timedelta
+
+from pynput.keyboard import Controller, Key
+
 from gyrus.application.services import ClipboardService, EmbeddingService, UIService
 from gyrus.domain.models import Node
 from gyrus.domain.repository import NodeRepository
-import time
-from pynput.keyboard import Controller, Key
-from datetime import datetime, timedelta
 
 
 class CaptureClipboard:
@@ -13,12 +15,14 @@ class CaptureClipboard:
         repo: NodeRepository,
         ai: EmbeddingService,
         cb: ClipboardService,
-        ttl_seconds: int = 10  # Default TTL, configurable
+        ttl_seconds: int = 10,  # Default TTL, configurable
+        circle_id: str = "local"
     ):
         self.repo = repo
         self.ai = ai
         self.cb = cb
         self.ttl_seconds = ttl_seconds
+        self.circle_id = circle_id
 
     async def execute(self):
         text = self.cb.get_text()
@@ -31,14 +35,28 @@ class CaptureClipboard:
         # Async: AI service may be slow
         vector = await self.ai.encode(text)
         expires_at = datetime.now() + timedelta(seconds=self.ttl_seconds)
-        node = Node(content=text, vector=vector, expires_at=expires_at)
+        node = Node(
+            content=text,
+            vector=vector,
+            expires_at=expires_at,
+            circle_id=self.circle_id
+        )
 
         await self.repo.save(node)
-        logging.info(f"Gyrus [M1]: Nodo {node.id} persisted. TTL={self.ttl_seconds}s expires_at={expires_at}")
+        logging.info(
+            f"Gyrus [M1]: Nodo {node.id} persisted. "
+            f"Circle: {self.circle_id}, TTL={self.ttl_seconds}s expires_at={expires_at}"
+        )
 
 
 class RecallClipboard:
-    def __init__(self, repo: NodeRepository, ui: UIService, cb: ClipboardService, ai: EmbeddingService):
+    def __init__(
+        self,
+        repo: NodeRepository,
+        ui: UIService,
+        cb: ClipboardService,
+        ai: EmbeddingService
+    ):
         self.repo = repo
         self.ui = ui
         self.cb = cb
@@ -72,7 +90,11 @@ class RecallClipboard:
         try:
             ref_text = ''
             try:
-                ref_text = self.cb.get_selection() if hasattr(self.cb, 'get_selection') else ''
+                ref_text = (
+                    self.cb.get_selection()
+                    if hasattr(self.cb, 'get_selection')
+                    else ''
+                )
             except Exception as e:
                 logging.warning(f"Error getting selection: {e}")
                 ref_text = ''
@@ -96,10 +118,14 @@ class RecallClipboard:
                 idx = contents.index(selected)
                 node = nodes[idx]
                 paste_text = node.content
-                logging.info(f"Selected node info: id={node.id}, content='{node.content}', created_at={node.created_at}, metadata={node.metadata}")
+                logging.info(f"Selected node info: id={node.id}, content='{node.content}'")
+                logging.info(f"  created_at={node.created_at}, metadata={node.metadata}")
             except ValueError:
                 paste_text = selected
-                logging.info(f"Selected value not found in nodes, using raw selected: '{paste_text}'")
+                logging.info(
+                    f"Selected value not found in nodes, "
+                    f"using raw selected: '{paste_text}'"
+                )
             self.cb.set_text(paste_text)
             time.sleep(0.1)
             with self.kb_controller.pressed(Key.ctrl):
@@ -113,5 +139,8 @@ class PurgeExpiredNodes:
 
     async def execute(self, ttl_seconds: int):
         deleted = await self.repo.delete_expired(ttl_seconds)
-        logging.info(f"PurgeExpiredNodes: deleted {deleted} expired nodes (TTL={ttl_seconds}s).")
+        logging.info(
+            f"PurgeExpiredNodes: deleted {deleted} expired nodes "
+            f"(TTL={ttl_seconds}s)."
+        )
 
