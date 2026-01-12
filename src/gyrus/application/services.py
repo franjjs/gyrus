@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
+
 class EmbeddingService(ABC):
     @abstractmethod
     async def encode(self, text: str) -> List[float]: pass
