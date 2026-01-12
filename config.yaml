@@ -1,0 +1,14 @@
+# Gyrus configuration
+
+# TTL in seconds for clipboard memories
+ttl_seconds: 60
+
+# Interval in seconds for periodic cleanup
+cleanup_interval: 60
+
+# Hotkey configuration
+hotkeys:
+  capture: "<ctrl>+<cmd>+c"
+  recall: "<ctrl>+<cmd>+v"
+
+

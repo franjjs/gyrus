@@ -3,7 +3,7 @@ import json
 import sqlite3
 from typing import List
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from gyrus.domain.models import Node
 from gyrus.domain.repository import NodeRepository
@@ -86,17 +86,25 @@ class SQLiteNodeRepository(NodeRepository):
             logging.debug(f"find_similar: returning {len(result)} nodes sorted by similarity")
             return result
 
-    async def delete_expired(self) -> int:
-        logging.debug(f"delete_expired: checking for expired nodes in db_path={self.db_path}")
+    async def delete_expired(self, ttl_seconds: int) -> int:
+        logging.debug(f"delete_expired: checking for expired nodes in db_path={self.db_path} with TTL={ttl_seconds}s")
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT id, expires_at FROM nodes"
+                "SELECT id, created_at FROM nodes"
             )
             now = datetime.now()
             expired_ids = []
             for row in cursor.fetchall():
-                expires_at = row[1]
-                if expires_at and expires_at < now.isoformat():
+                created_at = row[1]
+                # Parse created_at if it's a string
+                if isinstance(created_at, str):
+                    try:
+                        created_at_dt = datetime.fromisoformat(created_at)
+                    except Exception:
+                        continue
+                else:
+                    created_at_dt = created_at
+                if (now - created_at_dt).total_seconds() > ttl_seconds:
                     expired_ids.append(row[0])
             for node_id in expired_ids:
                 conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))

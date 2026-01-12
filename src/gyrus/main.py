@@ -1,7 +1,8 @@
 import asyncio
 import threading
 import logging
-from gyrus.application.use_cases import CaptureClipboard, RecallClipboard # Importa el nuevo caso
+import yaml
+from gyrus.application.use_cases import CaptureClipboard, RecallClipboard, PurgeExpiredNodes # Importa el nuevo caso
 from gyrus.infrastructure.adapters.ai.fastembed_adapter import FastEmbedAdapter
 from gyrus.infrastructure.adapters.storage.sqlite_adapter import SQLiteNodeRepository
 from gyrus.infrastructure.adapters.ui.rofi_adapter import RofiAdapter # Importa Rofi
@@ -15,12 +16,15 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
 )
 
-TTL_SECONDS = 10  # For testing, set to 10 seconds. Make configurable via config if needed.
-CLEANUP_INTERVAL = 10  # Run cleanup every 10 seconds for testing
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+    
+TTL_SECONDS = config.get('ttl_seconds', 60)
+CLEANUP_INTERVAL = config.get('cleanup_interval', 60)
 
-async def periodic_cleanup(repo, interval=CLEANUP_INTERVAL):
+async def periodic_cleanup(purge_use_case, ttl_seconds, interval=CLEANUP_INTERVAL):
     while True:
-        await repo.delete_expired()
+        await purge_use_case.execute(ttl_seconds)
         await asyncio.sleep(interval)
 
 async def run_daemon():
@@ -31,11 +35,12 @@ async def run_daemon():
     ui = RofiAdapter()
 
     # Init use cases
-    capture_use_case = CaptureClipboard(repo, ai, clipboard)
+    capture_use_case = CaptureClipboard(repo, ai, clipboard, ttl_seconds=TTL_SECONDS)
     recall_use_case = RecallClipboard(repo, ui, clipboard, ai)
+    purge_use_case = PurgeExpiredNodes(repo)
 
     # Start periodic cleanup
-    asyncio.create_task(periodic_cleanup(repo))
+    asyncio.create_task(periodic_cleanup(purge_use_case, TTL_SECONDS, interval=CLEANUP_INTERVAL))
 
     loop = asyncio.get_running_loop()
 
@@ -48,18 +53,22 @@ async def run_daemon():
         logging.info("🔍 Recall triggered!")
         asyncio.run_coroutine_threadsafe(recall_use_case.execute(), loop)
 
-    # Start keyboard listener with hotkeys
+    # Start keyboard listener with hotkeys from config
+    hotkey_cfg = config.get('hotkeys', {})
+    capture_hotkey = hotkey_cfg.get('capture', '<ctrl>+<cmd>+c')
+    recall_hotkey = hotkey_cfg.get('recall', '<ctrl>+<cmd>+v')
+
     hotkeys = {
-        '<ctrl>+<cmd>+c': on_capture,
-        '<ctrl>+<cmd>+v': on_recall
+        capture_hotkey: on_capture,
+        recall_hotkey: on_recall
     }
-    
+
     listener = KeyboardListenerAdapter(hotkeys)
     listener_thread = threading.Thread(target=listener.start, daemon=True)
     listener_thread.start()
 
-    logging.info("🧠 Gyrus Stage 1 (Synapse) Active")
-    logging.info("⌨️  Ctrl+Super+C: Capture | Ctrl+Super+V: Recall")
+    logging.info(f"🧠 Gyrus Stage 1 (Synapse) Active")
+    logging.info(f"⌨️  Capture: {capture_hotkey} | Recall: {recall_hotkey}")
 
     while True:
         await asyncio.sleep(3600)

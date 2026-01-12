@@ -36,6 +36,7 @@ class CaptureClipboard:
         await self.repo.save(node)
         logging.info(f"Gyrus [M1]: Nodo {node.id} persisted. TTL={self.ttl_seconds}s expires_at={expires_at}")
 
+
 class RecallClipboard:
     def __init__(self, repo: NodeRepository, ui: UIService, cb: ClipboardService, ai: EmbeddingService):
         self.repo = repo
@@ -104,4 +105,13 @@ class RecallClipboard:
             with self.kb_controller.pressed(Key.ctrl):
                 self.kb_controller.tap('v')
             logging.info(f"Gyrus: '{paste_text[:20]}...' pasted (semantic match).")
+
+
+class PurgeExpiredNodes:
+    def __init__(self, repo: NodeRepository):
+        self.repo = repo
+
+    async def execute(self, ttl_seconds: int):
+        deleted = await self.repo.delete_expired(ttl_seconds)
+        logging.info(f"PurgeExpiredNodes: deleted {deleted} expired nodes (TTL={ttl_seconds}s).")
 
