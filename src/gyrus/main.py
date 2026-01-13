@@ -19,7 +19,7 @@ from gyrus.infrastructure.adapters.system.linux_adapter import (
     KeyboardListenerAdapter,
     LinuxClipboardAdapter,
 )
-from gyrus.infrastructure.adapters.ui.rofi_adapter import RofiAdapter  # Importa Rofi
+from gyrus.infrastructure.adapters.ui.twinter_adapter import TkinterAdapter  # Importa RofiDmenuAdapter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -74,7 +74,12 @@ async def run_daemon():
     repo = SQLiteNodeRepository()
     ai = FastEmbedAdapter()
     clipboard = LinuxClipboardAdapter()
-    ui = RofiAdapter()
+
+    # Choose UI adapter: FzfAdapter, RofiAdapter, or RofiDmenuAdapter
+    # ui = FzfAdapter()
+    # ui = RofiAdapter()
+    # ui = RofiDmenuAdapter()
+    ui = TkinterAdapter()
 
     # Init use cases
     capture_use_case = CaptureClipboard(repo, ai, clipboard, ttl_seconds=TTL_SECONDS)

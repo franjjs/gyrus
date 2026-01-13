@@ -28,16 +28,6 @@ class SQLiteNodeRepository(NodeRepository):
                     circle_id TEXT
                 )
             """)
-            
-            # Migration: Add circle_id column if it doesn't exist
-            try:
-                cursor = conn.execute("PRAGMA table_info(nodes)")
-                columns = [row[1] for row in cursor.fetchall()]
-                if 'circle_id' not in columns:
-                    logging.info("Migrating database: adding circle_id column")
-                    conn.execute("ALTER TABLE nodes ADD COLUMN circle_id TEXT")
-            except Exception as e:
-                logging.warning(f"Migration check failed: {e}")
 
     async def save(self, node: Node) -> None:
         logging.debug(
