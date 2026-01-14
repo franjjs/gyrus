@@ -1,24 +1,43 @@
 import subprocess
-from typing import List, Optional
+from typing import Any, Callable, List, Optional
 
 from gyrus.application.services import UIService
 
 
 class RofiAdapter(UIService):
-    def select_from_list(self, items: List[str]) -> Optional[str]:
+    """Fast text-based picker."""
+
+    def select_from_list(
+        self, 
+        nodes: List[Any], 
+        vectorizer: Optional[Callable] = None, 
+        vector_model_id: str = "unknown"
+    ) -> Optional[str]:
+        if not nodes:
+            return None
+
+        # Format lines for Rofi
+        items = [f"{n.content.replace('\n', ' ')}" for n in nodes]
         input_str = "\n".join(items)
+
         try:
             process = subprocess.Popen(
-                [
-                    'rofi', '-dmenu', '-p', '🧠 Gyrus Recall',
-                    '-i', '-theme-str', 'window {width: 40%;}'
-                ],
+                ['rofi', '-dmenu', '-p', '🧠 Gyrus', '-i', '-theme-str', 'window {width: 40%;}'],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 text=True
             )
             stdout, _ = process.communicate(input=input_str)
-            return stdout.strip() if stdout else None
+            
+            if not stdout:
+                return None
+
+            # Map selection back to node
+            clean_sel = stdout.strip().replace(" »  ", "")
+            for n in nodes:
+                if n.content.replace('\n', ' ').strip() == clean_sel:
+                    return n.content
+            return clean_sel
+            
         except FileNotFoundError:
-            print("Error: 'rofi' not found. Please install it.")
             return None

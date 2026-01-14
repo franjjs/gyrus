@@ -23,6 +23,7 @@ class Circle:
 class Node:
     content: str
     vector: List[float]
+    vector_model_id: str = "bge-small-en-v1.5"
     circle_id: Optional[UUID] = None  # None represents the 'local' circle
     id: UUID = field(default_factory=uuid4)
     metadata: Dict = field(default_factory=dict)

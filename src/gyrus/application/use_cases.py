@@ -1,6 +1,7 @@
 import logging
 import time
 from datetime import datetime, timedelta
+from typing import List
 
 from pynput.keyboard import Controller, Key
 
@@ -15,7 +16,7 @@ class CaptureClipboard:
         repo: NodeRepository,
         ai: EmbeddingService,
         cb: ClipboardService,
-        ttl_seconds: int = 10,  # Default TTL, configurable
+        ttl_seconds: int = 60,
         circle_id: str = "local"
     ):
         self.repo = repo
@@ -29,25 +30,22 @@ class CaptureClipboard:
         if not text:
             return
 
-        # Set clipboard to selection, mimicking Ctrl+C
-        self.cb.set_text(text)
-
-        # Async: AI service may be slow
+        # Get vector and current model metadata
         vector = await self.ai.encode(text)
+        model_vector_id = self.ai.vector_model_id
+        
         expires_at = datetime.now() + timedelta(seconds=self.ttl_seconds)
+        
         node = Node(
             content=text,
             vector=vector,
+            vector_model_id=model_vector_id,
             expires_at=expires_at,
             circle_id=self.circle_id
         )
 
         await self.repo.save(node)
-        logging.info(
-            f"Gyrus [M1]: Nodo {node.id} persisted. "
-            f"Circle: {self.circle_id}, TTL={self.ttl_seconds}s expires_at={expires_at}"
-        )
-
+        logging.info(f"Gyrus: Node {node.id} saved using model {model_vector_id}")
 
 class RecallClipboard:
     def __init__(
@@ -64,74 +62,39 @@ class RecallClipboard:
         self.kb_controller = Controller()
 
     async def execute(self):
-        logging.debug("Entered RecallClipboard.execute")
-        ref_emb = await self._get_reference_embedding()
-        if ref_emb is None:
-            logging.warning("No reference text for similarity search.")
-            return
-
-        nodes = await self.repo.find_similar(ref_emb, limit=15)
+        logging.info("RecallClipboard: Starting local hybrid search")
+        
+        # Fetch last 30 nodes for local buffer
+        nodes = await self.repo.find_last(limit=30)
         if not nodes:
-            logging.info("No similar memories found.")
+            logging.info("No nodes found in database")
             return
 
-        logging.debug(f"RecallClipboard: {len(nodes)} nodes obtained for selection.")
+        # Get current model ID to ensure vector compatibility
+        current_vmid = getattr(self.ai, "vector_model_id", "unknown")
 
-        selected, contents = self._show_ui_selection(nodes)
+        # Trigger UI selection with 3 synchronized arguments
+        selected_content = self.ui.select_from_list(
+            nodes=nodes,
+            vectorizer=self.ai.encode,
+            vector_model_id=current_vmid
+        )
 
-        self._handle_selection_and_paste(selected, nodes, contents)
+        if selected_content:
+            self._handle_selection_and_paste(selected_content, nodes)
 
-    def _show_ui_selection(self, nodes):
-        contents = [n.content for n in nodes]
-        selected = self.ui.select_from_list(contents)
-        return selected, contents
-
-    async def _get_reference_embedding(self) -> list:
-        try:
-            ref_text = ''
-            try:
-                ref_text = (
-                    self.cb.get_selection()
-                    if hasattr(self.cb, 'get_selection')
-                    else ''
-                )
-            except Exception as e:
-                logging.warning(f"Error getting selection: {e}")
-                ref_text = ''
-
-            if not ref_text:
-                try:
-                    ref_text = self.cb.get_text()
-                except Exception as e:
-                    logging.warning(f"Error getting clipboard: {e}")
-                    ref_text = ''
-
-            logging.debug(f"RecallClipboard reference text: '{ref_text[:40]}'")
-            return await self.ai.encode(ref_text)
-        except Exception as e:
-            logging.warning(f"Error getting reference embedding: {e}")
-            return await self.ai.encode("")
-
-    def _handle_selection_and_paste(self, selected, nodes, contents):
-        if selected:
-            try:
-                idx = contents.index(selected)
-                node = nodes[idx]
-                paste_text = node.content
-                logging.info(f"Selected node info: id={node.id}, content='{node.content}'")
-                logging.info(f"  created_at={node.created_at}, metadata={node.metadata}")
-            except ValueError:
-                paste_text = selected
-                logging.info(
-                    f"Selected value not found in nodes, "
-                    f"using raw selected: '{paste_text}'"
-                )
-            self.cb.set_text(paste_text)
-            time.sleep(0.1)
-            with self.kb_controller.pressed(Key.ctrl):
-                self.kb_controller.tap('v')
-            logging.info(f"Gyrus: '{paste_text[:20]}...' pasted (semantic match).")
-
+    def _handle_selection_and_paste(self, selected_content: str, nodes: List[Node]):
+        # Match selection back to original node for full content
+        target_node = next((n for n in nodes if n.content == selected_content), None)
+        paste_text = target_node.content if target_node else selected_content
+        
+        # Update clipboard and trigger OS paste command
+        self.cb.set_text(paste_text)
+        time.sleep(0.1) # OS clipboard sync buffer
+        with self.kb_controller.pressed(Key.ctrl):
+            self.kb_controller.tap('v')
+            
+        logging.info(f"Gyrus: Pasted '{paste_text[:20]}...' successfully")
 
 class PurgeExpiredNodes:
     def __init__(self, repo: NodeRepository):
@@ -139,8 +102,5 @@ class PurgeExpiredNodes:
 
     async def execute(self, ttl_seconds: int):
         deleted = await self.repo.delete_expired(ttl_seconds)
-        logging.info(
-            f"PurgeExpiredNodes: deleted {deleted} expired nodes "
-            f"(TTL={ttl_seconds}s)."
-        )
-
+        if deleted > 0:
+            logging.info(f"Purge: Deleted {deleted} expired nodes")

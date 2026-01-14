@@ -1,7 +1,7 @@
 # Gyrus configuration
 
 # TTL in seconds for clipboard memories
-ttl_seconds: 60
+ttl_seconds: 600
 
 # Interval in seconds for periodic cleanup
 cleanup_interval: 60

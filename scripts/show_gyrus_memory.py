@@ -16,6 +16,7 @@ async def show_memory():
             f"Created: {node.created_at}\n"
             f"CircleId: {circle_id}\n"
             f"Embeddings: {node.vector}\n"
+            f"Vector Model ID: {node.vector_model_id}\n"
             f"Expires: {node.expires_at}\n"
             f"{'-'*40}"
         )

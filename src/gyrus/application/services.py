@@ -1,10 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Any, Callable, List, Optional
 
 
 class EmbeddingService(ABC):
     @abstractmethod
     async def encode(self, text: str) -> List[float]: pass
+
+    @property
+    @abstractmethod
+    def vector_model_id(self) -> str:
+        pass
 
 class ClipboardService(ABC):
     @abstractmethod
@@ -15,4 +20,10 @@ class ClipboardService(ABC):
 
 class UIService(ABC):
     @abstractmethod
-    def select_from_list(self, items: List[str]) -> Optional[str]: pass
+    def select_from_list(
+        self, 
+        nodes: List[Any], 
+        vectorizer: Optional[Callable] = None,
+        vector_model_id: str = "unknown" # Updated name
+    ) -> Optional[str]: 
+        pass

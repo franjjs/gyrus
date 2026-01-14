@@ -35,7 +35,9 @@ The "doing" layer. Real implementations.
 - **`storage/sqlite_adapter.py`**: SQLite + NumPy to store vectors as BLOBs.
 - **`ai/fastembed_adapter.py`**: Local BGE-small embeddings.
 - **`system/linux_adapter.py`**: `pynput` for hotkeys and `wl-clipboard/xclip` for text.
-- **`ui/twinter_adapter.py`**: Linux-friendly **custom UI component** built with Tkinter (Python stdlib) for Recall selection (search + list + tooltip). This is the default UI adapter wired in `src/gyrus/main.py`.
+- **`ui/` adapters** (Recall UI):
+  - **`twinter_adapter.py`** *(Default)*: Linux-native Tkinter picker with **hybrid semantic + fuzzy search** (leverages vector embeddings for semantic ranking + difflib for fuzzy matching). Includes live preview tooltip.
+  - **`rofi_adapter.py`**: External dmenu-like UI with **traditional text search** (no vector embeddings).
 
 ---
 
