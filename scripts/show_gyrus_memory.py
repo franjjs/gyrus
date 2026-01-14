@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 
-from gyrus.infrastructure.adapters.storage.sqlite_adapter import SQLiteNodeRepository
+from gyrus.infrastructure.adapters.storage.sqlite_storage import SQLiteNodeRepository
 
 
 async def show_memory():

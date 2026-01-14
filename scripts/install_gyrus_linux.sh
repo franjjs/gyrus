@@ -5,15 +5,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Ensure venv exists and python is available
-if [ ! -x "$PROJECT_ROOT/.venv/bin/python" ]; then
-  echo "ERROR: Python venv not found at $PROJECT_ROOT/.venv. Please create it first."
+# Ensure venv exists and gyrus script is available
+if [ ! -x "$PROJECT_ROOT/.venv/bin/gyrus" ]; then
+  echo "ERROR: Gyrus CLI not found. Please run 'uv pip install -e .' first."
   exit 1
 fi
 
 USER_NAME=$(whoami)
 WORKDIR="$PROJECT_ROOT"
-VENV_PATH="$PROJECT_ROOT/.venv/bin/python"
+GYRUS_BIN="$PROJECT_ROOT/.venv/bin/gyrus"
 DISPLAY_VAR=${DISPLAY:-":0"}
 XAUTHORITY_FILE="/home/$USER_NAME/.Xauthority"
 
@@ -29,7 +29,7 @@ After=graphical-session.target
 [Service]
 Type=simple
 WorkingDirectory=$WORKDIR
-ExecStart=$VENV_PATH -m gyrus.main
+ExecStart=$GYRUS_BIN start
 Restart=on-failure
 Environment=PYTHONUNBUFFERED=1
 Environment=DISPLAY=$DISPLAY_VAR

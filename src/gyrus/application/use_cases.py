@@ -26,14 +26,15 @@ class CaptureClipboard:
         self.circle_id = circle_id
 
     async def execute(self):
-        text = self.cb.get_text()
+        # Capture from current selection (infra handles Ctrl+C)
+        text = self.cb.capture_from_selection()
         if not text:
             return
 
         # Get vector and current model metadata
         vector = await self.ai.encode(text)
         model_vector_id = self.ai.vector_model_id
-        
+
         expires_at = datetime.now() + timedelta(seconds=self.ttl_seconds)
         
         node = Node(
@@ -90,11 +91,16 @@ class RecallClipboard:
         
         # Update clipboard and trigger OS paste command
         self.cb.set_text(paste_text)
+        logging.info("Clipboard text set, waiting for sync...")
         time.sleep(0.1) # OS clipboard sync buffer
-        with self.kb_controller.pressed(Key.ctrl):
-            self.kb_controller.tap('v')
-            
-        logging.info(f"Gyrus: Pasted '{paste_text[:20]}...' successfully")
+        
+        try:
+            logging.info("Attempting to paste (Ctrl+V)...")
+            with self.kb_controller.pressed(Key.ctrl):
+                self.kb_controller.tap('v')
+            logging.info(f"Gyrus: Pasted '{paste_text[:20]}...' successfully")
+        except Exception as e:
+            logging.error(f"Failed to paste: {e}")
 
 class PurgeExpiredNodes:
     def __init__(self, repo: NodeRepository):

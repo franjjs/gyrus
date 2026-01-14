@@ -5,7 +5,10 @@ from gyrus.application.services import UIService
 
 
 class RofiAdapter(UIService):
-    """Fast text-based picker."""
+    """
+    Linux-only text-based picker using rofi dmenu.
+    Requires 'rofi' binary to be installed on the system.
+    """
 
     def select_from_list(
         self, 

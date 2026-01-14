@@ -1,4 +1,4 @@
-from gyrus.infrastructure.adapters.storage.sqlite_adapter import SQLiteNodeRepository
+from gyrus.infrastructure.adapters.storage.sqlite_storage import SQLiteNodeRepository
 
 
 def test_sqlite_repository_instantiation():

@@ -32,11 +32,11 @@ The orchestrator. Defines interfaces for the outside world.
 ### 3. Infrastructure Layer (`src/gyrus/infrastructure/adapters/`)
 The "doing" layer. Real implementations.
 
-- **`storage/sqlite_adapter.py`**: SQLite + NumPy to store vectors as BLOBs.
+- **`storage/sqlite_storage.py`**: SQLite + NumPy to store vectors as BLOBs.
 - **`ai/fastembed_adapter.py`**: Local BGE-small embeddings.
 - **`system/linux_adapter.py`**: `pynput` for hotkeys and `wl-clipboard/xclip` for text.
 - **`ui/` adapters** (Recall UI):
-  - **`twinter_adapter.py`** *(Default)*: Linux-native Tkinter picker with **hybrid semantic + fuzzy search** (leverages vector embeddings for semantic ranking + difflib for fuzzy matching). Includes live preview tooltip.
+  - **`tkinter_adapter.py`** *(Default)*: Tkinter picker with **hybrid semantic + fuzzy search** (leverages vector embeddings for semantic ranking + difflib for fuzzy matching). Includes live preview tooltip.
   - **`rofi_adapter.py`**: External dmenu-like UI with **traditional text search** (no vector embeddings).
 
 ---
@@ -48,10 +48,11 @@ We use **`uv`** for management and **`taskipy`** for automation.
 | Command | Action |
 | :--- | :--- |
 | `uv sync` | Install all dependencies into `.venv` |
+| `uv pip install -e .` | **Install package in editable mode** (required for systemd service and scripts) |
 | `uv run task check` | **Linter (Ruff)** + **Tests (Pytest)**. Run this before every commit! |
 | `uv run task format` | Automatically fix PEP8 issues with Ruff |
 | `uv run task start` | Launch the Gyrus background daemon |
-| `uv run python scripts/show_gyrus_memory.py` | Display all stored memory nodes from the database |
+| `PYTHONPATH=src uv run python scripts/show_gyrus_memory.py` | Display all stored memory nodes from the database |
 
 ---
 
@@ -78,7 +79,7 @@ Your project is pre-configured with:
 ## 🧪 Testing Hierarchy
 
 1. **Unit (Domain)**: Tests logic in `domain/models.py`.
-2. **Integration (Infra)**: Tests `sqlite_adapter.py` using `:memory:` databases.
+2. **Integration (Infra)**: Tests `sqlite_storage.py` using `:memory:` databases.
 3. **End-to-End**: Tests the `CaptureClipboard` use case with mocked adapters.
 
 ---

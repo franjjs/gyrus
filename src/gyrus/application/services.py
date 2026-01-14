@@ -18,6 +18,11 @@ class ClipboardService(ABC):
     @abstractmethod
     def set_text(self, text: str) -> None: pass
 
+    @abstractmethod
+    def capture_from_selection(self) -> str:
+        """Copy current selection to clipboard and return the text."""
+        pass
+
 class UIService(ABC):
     @abstractmethod
     def select_from_list(

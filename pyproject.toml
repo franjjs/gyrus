@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-gyrus = "gyrus.main:run_daemon"
+gyrus = "gyrus.main:cli"
 
 [dependency-groups]
 dev = [
