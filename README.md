@@ -10,7 +10,7 @@ Gyrus follows the **Hebb's Law principle**: *"Nodes that fire together, wire tog
 | Stage | Name | Focus | Status |
 | :--- | :--- | :--- | :--- |
 | **Stage 1** | **Synapse** | Local semantic capture, vector embeddings, and SQLite persistence. | **Active** |
-| **Stage 2** | **Cortex** | Visual recall interface (Rofi/Fzf), fuzzy search, and temporal decay. | Planned |
+| **Stage 2** | **Cortex** | Visual recall interface (Rofi/Tkinter), semantic and fuzzy search, and temporal decay. | **Active** |
 | **Stage 3** | **Neural Circle** | E2EE Trust Circles, NATS-based P2P sync, and collective memory. | Research |
 
 ---
