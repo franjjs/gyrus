@@ -1,6 +1,6 @@
 [project]
 name = "gyrus"
-version = "0.1.0"
+version = "0.1.1"
 description = "Semantic and collective clipboard infrastructure with local-first E2EE circles."
 readme = "README.md"
 requires-python = ">=3.12"
