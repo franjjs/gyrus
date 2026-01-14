@@ -35,7 +35,7 @@ def check_git_status():
         
         print("✅ Git status OK (on main, clean)")
     except subprocess.CalledProcessError as e:
-        raise ValueError(f"Git error: {e}")
+        raise ValueError(f"Git error: {e}") from e
 
 def parse_version(version_str):
     """Parse version string into (major, minor, patch)."""
@@ -89,7 +89,7 @@ def create_git_tag(version):
         # Create tag
         subprocess.run(['git', 'tag', '-a', tag_name, '-m', f'Release {version}'], check=True, capture_output=True)
         print(f"✅ Git tag created: {tag_name}")
-        print(f"   Push with: git push origin main --tags")
+        print("   Push with: git push origin main --tags")
         return tag_name
     except subprocess.CalledProcessError as e:
         print(f"⚠️  Warning: Could not create git tag: {e}")
