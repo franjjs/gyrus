@@ -14,7 +14,9 @@ class RofiAdapter(UIService):
         self, 
         nodes: List[Any], 
         vectorizer: Optional[Callable] = None, 
-        vector_model_id: str = "unknown"
+        vector_model_id: str = "unknown",
+        circle_id: str = "local",
+        mode: str = "recall"
     ) -> Optional[str]:
         if not nodes:
             return None
@@ -24,8 +26,13 @@ class RofiAdapter(UIService):
         input_str = "\n".join(items)
 
         try:
+            if mode == "recall":
+                prompt = f"🧠 Gyrus Recall • {circle_id}"
+            else:
+                prompt = f"👁️ Gyrus View • {circle_id}"
+            
             process = subprocess.Popen(
-                ['rofi', '-dmenu', '-p', '🧠 Gyrus', '-i', '-theme-str', 'window {width: 40%;}'],
+                ['rofi', '-dmenu', '-p', prompt, '-i', '-theme-str', 'window {width: 40%;}'],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 text=True

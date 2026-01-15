@@ -96,16 +96,45 @@ Your project is pre-configured with:
 ```sh
 sudo apt-get update
 sudo apt-get install python3.12 python3.12-venv python3-pip x11-utils xclip rofi
+
+# Optional: For GNOME system tray support (AppIndicator in top panel)
+sudo apt-get install python3-gi gir1.2-appindicator3-0.1
 ```
 
 ### 2. Clone & Setup Project
 ```sh
-git clone <your_repo_url>
+git clone https://github.com/franjjs/gyrus
 cd gyrus
 python3.12 -m venv .venv
 source .venv/bin/activate
-uv pip install -e .
+uv sync
 ```
+
+### 2b. Optional: Enable GNOME AppIndicator (System Tray)
+
+#### For Ubuntu 20.04:
+```sh
+# Install system dependencies
+sudo apt-get install python3-gi gir1.2-appindicator3-0.1
+
+# Install Python AppIndicator support
+uv sync --group gnome-ubuntu-2004
+
+# If you get girepository-2.0 build errors, fix pkgconfig:
+sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/gobject-introspection-1.0.pc \
+  /usr/lib/x86_64-linux-gnu/pkgconfig/girepository-2.0.pc
+```
+
+#### For Ubuntu 22.04+:
+```sh
+# Install system dependencies
+sudo apt-get install python3-gi gir1.2-appindicator3-0.1
+
+# Install Python AppIndicator support
+uv sync --group gnome-ubuntu-2204
+```
+
+After this, `uv run task start` will display the 🧠 icon in GNOME's top panel with circle selection menu.
 
 ### 3. Launch as User Systemd Service
 ```sh

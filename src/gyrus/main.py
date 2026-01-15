@@ -8,8 +8,11 @@ from pathlib import Path
 
 import yaml
 
-from gyrus.application.use_cases import (  # Importa el nuevo caso
+from gyrus.application.circle_service import CircleService
+from gyrus.application.use_cases import (
     CaptureClipboard,
+    PurgeAllMemory,
+    PurgeCircleMemory,
     PurgeExpiredNodes,
     RecallClipboard,
 )
@@ -21,6 +24,9 @@ from gyrus.infrastructure.adapters.system.clipboard_adapter import (
 from gyrus.infrastructure.adapters.system.keyboard_adapter import KeyboardListenerAdapter
 from gyrus.infrastructure.adapters.ui.rofi_adapter import RofiAdapter
 from gyrus.infrastructure.adapters.ui.tkinter_adapter import TkinterAdapter
+from gyrus.infrastructure.adapters.system.tray_lifecycle_adapter import (
+    TrayLifecycleManager,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,30 +46,20 @@ def check_pid_file():
     if PIDFILE.exists():
         try:
             pid = int(PIDFILE.read_text().strip())
-            # Check if process is still running
             os.kill(pid, 0)
-            logging.error(
-                f"Gyrus is already running (PID {pid}). "
-                f"Use 'kill {pid}' to stop it."
-            )
+            logging.error(f"Gyrus is already running (PID {pid}).")
             sys.exit(1)
         except (OSError, ValueError):
-            # Process doesn't exist or invalid PID, remove stale file
             logging.warning("Removing stale PID file")
             PIDFILE.unlink()
     
-    # Write current PID
     PIDFILE.write_text(str(os.getpid()))
-    logging.info(f"PID file created: {PIDFILE}")
-    
-    # Ensure cleanup on exit
     atexit.register(cleanup_pid_file)
 
 def cleanup_pid_file():
     """Remove PID file on clean exit."""
     if PIDFILE.exists():
         PIDFILE.unlink()
-        logging.info("PID file removed")
 
 async def periodic_cleanup(purge_use_case, ttl_seconds, interval=CLEANUP_INTERVAL):
     while True:
@@ -71,212 +67,112 @@ async def periodic_cleanup(purge_use_case, ttl_seconds, interval=CLEANUP_INTERVA
         await asyncio.sleep(interval)
 
 async def run_daemon():
+    # Init CircleService (centralized circle state)
+    circle_service = CircleService(initial_circle="local")
+    
     # Init adapters
     repo = SQLiteNodeRepository()
     ai = FastEmbedAdapter()
-    clipboard = CrossPlatformClipboardAdapter()  # Cross-platform (Linux/Windows/macOS)
+    clipboard = CrossPlatformClipboardAdapter()
 
     if config.get('ui_adapter', 'tkinter') == 'rofi':
-        ui = RofiAdapter()  # Linux-only (requires 'rofi' binary)
+        ui = RofiAdapter()
     else:
-        ui = TkinterAdapter()  # Cross-platform (Linux/Windows/macOS)
+        ui = TkinterAdapter(clipboard)
 
-    # Init use cases
-    capture_use_case = CaptureClipboard(repo, ai, clipboard, ttl_seconds=TTL_SECONDS)
-    recall_use_case = RecallClipboard(repo, ui, clipboard, ai)
+    # Init use cases with circle service
+    capture_use_case = CaptureClipboard(repo, ai, clipboard, circle_service, ttl_seconds=TTL_SECONDS)
+    recall_use_case = RecallClipboard(repo, ui, clipboard, ai, circle_service)
     purge_use_case = PurgeExpiredNodes(repo)
-
-    # Start periodic cleanup
-    asyncio.create_task(
-        periodic_cleanup(purge_use_case, TTL_SECONDS, interval=CLEANUP_INTERVAL)
-    )
+    purge_circle_use_case = PurgeCircleMemory(repo)
+    purge_all_use_case = PurgeAllMemory(repo)
 
     loop = asyncio.get_running_loop()
 
-    # Hotkey callbacks
-    _capture_count = 0
-    _recall_count = 0
-    
+    # Callbacks
     def on_capture():
-        nonlocal _capture_count
-        _capture_count += 1
-        logging.info(f"💡 Capture triggered! (call #{_capture_count})")
-        asyncio.run_coroutine_threadsafe(capture_use_case.execute(), loop)
+        logging.info("💡 Capture triggered!")
+        loop.call_soon_threadsafe(lambda: asyncio.create_task(capture_use_case.execute()))
 
     def on_recall():
-        nonlocal _recall_count
-        _recall_count += 1
-        logging.info(f"🔍 Recall triggered! (call #{_recall_count})")
-        asyncio.run_coroutine_threadsafe(recall_use_case.execute(), loop)
+        logging.info("🔍 Recall triggered!")
+        loop.call_soon_threadsafe(lambda: asyncio.create_task(recall_use_case.execute(mode="recall")))
 
-    # Start keyboard listener with hotkeys from config
+    def on_purge():
+        logging.info("🗑️ Purge triggered!")
+        loop.call_soon_threadsafe(lambda: asyncio.create_task(purge_use_case.execute(TTL_SECONDS)))
+
+    def on_purge_circle(circle_id: str):
+        logging.info(f"🧹 Purge circle requested: {circle_id}")
+        loop.call_soon_threadsafe(lambda: asyncio.create_task(purge_circle_use_case.execute(circle_id)))
+
+    def on_view_circle(circle_id: str):
+        logging.info(f"👁️ View circle requested: {circle_id}")
+        # Use recall_use_case with mode="view" (copy to clipboard, not paste)
+        loop.call_soon_threadsafe(lambda: asyncio.create_task(recall_use_case.execute(mode="view")))
+
+    def on_purge_all():
+        logging.info("Purge all memories requested")
+        loop.call_soon_threadsafe(lambda: asyncio.create_task(purge_all_use_case.execute()))
+
+    def on_circle_change(new_id):
+        circle_service.set_circle(new_id)
+
+    # Initialize tray adapter
+    tray = TrayLifecycleManager.create_tray_adapter(on_circle_change, on_purge_circle, on_view_circle, on_purge_all, repo)
+    if tray:
+        TrayLifecycleManager.start_tray_thread(tray)
+
+    # Hotkeys
     hotkey_cfg = config.get('hotkeys', {})
-    capture_hotkey = hotkey_cfg.get('capture', '<ctrl>+<cmd>+c')
-    recall_hotkey = hotkey_cfg.get('recall', '<ctrl>+<cmd>+v')
-
     hotkeys = {
-        capture_hotkey: on_capture,
-        recall_hotkey: on_recall
+        hotkey_cfg.get('capture', '<ctrl>+<cmd>+c'): on_capture,
+        hotkey_cfg.get('recall', '<ctrl>+<cmd>+v'): on_recall,
+        hotkey_cfg.get('purge', '<ctrl>+<cmd>+p'): on_purge,
     }
 
     listener = KeyboardListenerAdapter(hotkeys)
-    listener_thread = threading.Thread(target=listener.start, daemon=True)
-    listener_thread.start()
+    threading.Thread(target=listener.start, daemon=True).start()
 
-    logging.info("🧠 Gyrus Stage 1 (Synapse) Active")
-    logging.info(f"⌨️  Capture: {capture_hotkey} | Recall: {recall_hotkey}")
-
+    logging.info("🧠 Gyrus Stage 2 Active")
+    
     while True:
         await asyncio.sleep(3600)
 
 def cli():
-    """Entry point for the gyrus CLI command."""
     import argparse
-    
-    parser = argparse.ArgumentParser(
-        description="""
-╔═══════════════════════════════════════════════════════════════════╗
-║                    🧠  GYRUS  🧠                                  ║
-║          Semantic Collective Memory Infrastructure               ║
-║                                                                   ║
-║  "Nodes that fire together, wire together" — Hebb's Law          ║
-╚═══════════════════════════════════════════════════════════════════╝
-        """,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📋 COMMANDS:
-
-  🚀 gyrus start           Start in foreground (blocks terminal)
-  📊 gyrus status          Check if daemon is running
-  🔍 gyrus show            Show memory nodes (compact preview)
-  📖 gyrus show --full     Show memory nodes (full details)
-  🛑 gyrus stop            Stop running daemon
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💡 EXAMPLES:
-
-  Run Gyrus in foreground (for testing):
-    $ gyrus start
-
-  Install as system daemon (Linux):
-    $ ./scripts/install_gyrus_linux.sh
-    $ systemctl --user status gyrus
-
-  Check daemon status:
-    $ gyrus status
-
-  View your clipboard history:
-    $ gyrus show
-
-  See full node details (embeddings, metadata):
-    $ gyrus show --full
-
-  Stop the daemon (if running via PID):
-    $ gyrus stop
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚙️  Configuration: config.yaml
-📁  Database: data/gyrus.db
-🔑  Default Hotkeys: Ctrl+Cmd+C (Capture) | Ctrl+Cmd+V (Recall)
-
-🐧 Linux Daemon: Use scripts/install_gyrus_linux.sh (systemd)
-🍎 macOS Daemon: Use launchd (plist needed)
-🪟 Windows Daemon: Use Task Scheduler or NSSM
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        """
-    )
-    
-    parser.add_argument(
-        'command',
-        nargs='?',
-        default='start',
-        choices=['start', 'status', 'show', 'stop'],
-        help='Command to execute (default: start)'
-    )
-    
-    parser.add_argument(
-        '--full',
-        action='store_true',
-        help='Show full details (for show command)'
-    )
-    
+    parser = argparse.ArgumentParser(description="🧠 GYRUS - Semantic Collective Memory", formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('command', nargs='?', default='start', choices=['start', 'status', 'show', 'stop'])
+    parser.add_argument('--full', action='store_true')
     args = parser.parse_args()
     
     if args.command == 'start':
         try:
-            logging.info("Starting Gyrus Daemon...")
             check_pid_file()
             asyncio.run(run_daemon())
         except KeyboardInterrupt:
-            logging.info("Gyrus shutting down safely...")
+            logging.info("Gyrus shutting down...")
         finally:
             cleanup_pid_file()
     
     elif args.command == 'status':
         if PIDFILE.exists():
-            try:
-                pid = int(PIDFILE.read_text().strip())
-                os.kill(pid, 0)  # Check if process exists
-                print(f"✅ Gyrus is running (PID {pid})")
-                sys.exit(0)
-            except (OSError, ValueError):
-                print("❌ Gyrus is not running (stale PID file)")
-                sys.exit(1)
+            print(f"✅ Gyrus is running")
         else:
             print("❌ Gyrus is not running")
-            sys.exit(1)
-    
+            
     elif args.command == 'show':
-        # Show memory nodes
         from gyrus.infrastructure.adapters.storage.sqlite_storage import SQLiteNodeRepository
         repo = SQLiteNodeRepository()
         nodes = asyncio.run(repo.find_last(limit=100))
-        
-        if not nodes:
-            print("No memory nodes found.")
-            sys.exit(0)
-        
-        if args.full:
-            # Full details mode (like show_gyrus_memory.py script)
-            print(f"\n--- Gyrus Local Memory (last {len(nodes)} nodes) ---\n")
-            for node in nodes:
-                print(
-                    f"ID: {node.id}\n"
-                    f"Content: {node.content}\n"
-                    f"Created: {node.created_at}\n"
-                    f"CircleId: {node.circle_id}\n"
-                    f"Embeddings: {node.vector}\n"
-                    f"Vector Model ID: {node.vector_model_id}\n"
-                    f"Expires: {node.expires_at}\n"
-                    f"{'-'*40}"
-                )
-        else:
-            # Preview mode (compact)
-            print(f"\n🧠 Gyrus Memory ({len(nodes)} nodes)\n")
-            for i, node in enumerate(nodes, 1):
-                content_preview = node.content[:60].replace('\n', ' ')
-                print(f"{i:2d}. {content_preview}...")
-                print(f"    Created: {node.created_at} | Model: {node.vector_model_id}")
-            print()
-    
+        for i, node in enumerate(nodes, 1):
+            print(f"{i:2d}. {node.content[:60]}...")
+
     elif args.command == 'stop':
         if PIDFILE.exists():
-            try:
-                pid = int(PIDFILE.read_text().strip())
-                os.kill(pid, 15)  # SIGTERM
-                print(f"✅ Sent stop signal to Gyrus (PID {pid})")
-                sys.exit(0)
-            except (OSError, ValueError):
-                print("❌ Could not stop Gyrus")
-                sys.exit(1)
-        else:
-            print("❌ Gyrus is not running")
-            sys.exit(1)
+            pid = int(PIDFILE.read_text().strip())
+            os.kill(pid, 15)
+            print(f"✅ Stop signal sent to PID {pid}")
 
 if __name__ == "__main__":
     cli()

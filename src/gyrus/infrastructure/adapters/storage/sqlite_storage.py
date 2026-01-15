@@ -123,6 +123,36 @@ class SQLiteNodeRepository(NodeRepository):
                 conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
             return len(expired_ids)
 
+    async def purge_circle_memory(self, circle_id: str) -> int:
+        """Purge all nodes in a circle."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("DELETE FROM nodes WHERE circle_id = ?", (circle_id,))
+            deleted_count = cursor.rowcount
+            logging.info(f"🧹 Purged {deleted_count} nodes from circle '{circle_id}'")
+            return deleted_count
+
+    async def purge_all_memory(self) -> int:
+        """Purge all nodes from all circles."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("DELETE FROM nodes")
+            deleted_count = cursor.rowcount
+            logging.info(f"Purged all {deleted_count} nodes from all circles")
+            return deleted_count
+
+    async def count_nodes_by_circle(self, circle_id: str) -> int:
+        """Count nodes in a specific circle (async version)."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("SELECT COUNT(*) FROM nodes WHERE circle_id = ?", (circle_id,))
+            count = cursor.fetchone()[0]
+            return count
+
+    def count_nodes_by_circle_sync(self, circle_id: str) -> int:
+        """Count nodes in a specific circle (sync version for GTK menu)."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("SELECT COUNT(*) FROM nodes WHERE circle_id = ?", (circle_id,))
+            count = cursor.fetchone()[0]
+            return count
+
     def _cosine_similarity(self, vec1, vec2):
         if (vec1.shape != vec2.shape or np.linalg.norm(vec1) == 0 or np.linalg.norm(vec2) == 0):
             return -1.0

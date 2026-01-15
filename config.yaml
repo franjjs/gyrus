@@ -6,10 +6,14 @@ ttl_seconds: 600
 # Interval in seconds for periodic cleanup
 cleanup_interval: 60
 
+# ui adapter
+ui_adapter: "tkinter"
+
 # Hotkey configuration
 hotkeys:
   capture: "<ctrl>+<cmd>+c"
   recall: "<ctrl>+<cmd>+v"
+  purge: "<ctrl>+<cmd>+p"
 
 
 

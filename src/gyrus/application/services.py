@@ -29,6 +29,17 @@ class UIService(ABC):
         self, 
         nodes: List[Any], 
         vectorizer: Optional[Callable] = None,
-        vector_model_id: str = "unknown" # Updated name
+        vector_model_id: str = "unknown",
+        circle_id: str = "local",
+        mode: str = "recall"
     ) -> Optional[str]: 
+        pass
+
+class TrayService(ABC):
+    @abstractmethod
+    def update_status(self, circle_id: str, is_online: bool):
+        pass
+
+    @abstractmethod
+    def set_available_circles(self, circles: list):
         pass

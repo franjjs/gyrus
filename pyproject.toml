@@ -6,9 +6,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastembed>=0.7.4",
-    "numpy>=2.4.0",
+    "numpy==2.3.0",
     "pynput>=1.8.1",
     "pyperclip>=1.11.0",
+    "pystray>=0.19.5",
+    "Pillow>=11.0.0",
 ]
 
 [project.scripts]
@@ -21,6 +23,12 @@ dev = [
     "ruff>=0.14.11",
     "taskipy>=1.14.1",
     "pyautogui>=0.9.54"
+]
+gnome-ubuntu-2004 = [
+    "pygobject==3.42.2"
+]
+gnome-ubuntu-2204 = [
+    "pygobject>=3.42.2"
 ]
 
 [tool.ruff]
