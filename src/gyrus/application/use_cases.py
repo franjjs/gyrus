@@ -5,17 +5,17 @@ from typing import List
 
 from pynput.keyboard import Controller, Key
 
-from gyrus.application.services import ClipboardService, EmbeddingService, UIService
 from gyrus.application.circle_service import CircleService
+from gyrus.application.services import ClipboardService, EmbeddingService, UIService
 from gyrus.domain.models import Node
+from gyrus.domain.repository import NodeRepository
 
 
 def _sanitize_log(text: str, max_chars: int = 60) -> str:
     """Sanitize text for logging: remove newlines, limit chars."""
-    clean = text.replace("\n", " ").replace("\r", " ").strip()
+    clean = text.replace("\n", " ").replace("\r", " ").replace("\t", " ").strip()
     clean = " ".join(clean.split())  # Normalize whitespace
     return (clean[:max_chars] + "...") if len(clean) > max_chars else clean
-from gyrus.domain.repository import NodeRepository
 
 
 class CaptureClipboard:

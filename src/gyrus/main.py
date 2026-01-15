@@ -22,11 +22,11 @@ from gyrus.infrastructure.adapters.system.clipboard_adapter import (
     CrossPlatformClipboardAdapter,
 )
 from gyrus.infrastructure.adapters.system.keyboard_adapter import KeyboardListenerAdapter
-from gyrus.infrastructure.adapters.ui.rofi_adapter import RofiAdapter
-from gyrus.infrastructure.adapters.ui.tkinter_adapter import TkinterAdapter
 from gyrus.infrastructure.adapters.system.tray_lifecycle_adapter import (
     TrayLifecycleManager,
 )
+from gyrus.infrastructure.adapters.ui.rofi_adapter import RofiAdapter
+from gyrus.infrastructure.adapters.ui.tkinter_adapter import TkinterAdapter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -119,7 +119,9 @@ async def run_daemon():
         circle_service.set_circle(new_id)
 
     # Initialize tray adapter
-    tray = TrayLifecycleManager.create_tray_adapter(on_circle_change, on_purge_circle, on_view_circle, on_purge_all, repo)
+    tray = TrayLifecycleManager.create_tray_adapter(
+        on_circle_change, on_purge_circle, on_view_circle, on_purge_all, repo
+    )
     if tray:
         TrayLifecycleManager.start_tray_thread(tray)
 
@@ -141,7 +143,10 @@ async def run_daemon():
 
 def cli():
     import argparse
-    parser = argparse.ArgumentParser(description="🧠 GYRUS - Semantic Collective Memory", formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description="🧠 GYRUS - Semantic Collective Memory",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument('command', nargs='?', default='start', choices=['start', 'status', 'show', 'stop'])
     parser.add_argument('--full', action='store_true')
     args = parser.parse_args()
@@ -157,7 +162,7 @@ def cli():
     
     elif args.command == 'status':
         if PIDFILE.exists():
-            print(f"✅ Gyrus is running")
+            print("✅ Gyrus is running")
         else:
             print("❌ Gyrus is not running")
             

@@ -1,7 +1,6 @@
+import logging
 import os
 import signal
-import sys
-import logging
 from pathlib import Path
 
 import gi
@@ -25,7 +24,15 @@ HAS_APPINDICATOR, AppIndicator3, Gtk = load_appindicator()
 class GnomeAppIndicatorAdapter(TrayService):
     """AppIndicator adapter for GNOME (uses StatusNotifierItem via GI)."""
 
-    def __init__(self, current_circle_id, on_circle_change_callback, on_purge_circle_callback=None, on_view_circle_callback=None, on_purge_all_callback=None, repo=None):
+    def __init__(
+        self,
+        current_circle_id,
+        on_circle_change_callback,
+        on_purge_circle_callback=None,
+        on_view_circle_callback=None,
+        on_purge_all_callback=None,
+        repo=None,
+    ):
         if not HAS_APPINDICATOR:
             raise RuntimeError(
                 "AppIndicator3 not found. Install: sudo apt install gir1.2-appindicator3-0.1"

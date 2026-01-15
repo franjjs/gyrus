@@ -1,8 +1,11 @@
+import logging
+from pathlib import Path
+
 import pystray
 from PIL import Image
-from pathlib import Path
-import logging
+
 from gyrus.application.services import TrayService
+
 
 class PyStrayAdapter(TrayService):
     def __init__(self, current_circle_id, on_circle_change_callback):

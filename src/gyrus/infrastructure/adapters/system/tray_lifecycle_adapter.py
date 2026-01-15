@@ -24,7 +24,13 @@ class TrayLifecycleManager:
         return os.getenv('XDG_CURRENT_DESKTOP', '').upper()
 
     @staticmethod
-    def create_tray_adapter(on_circle_change: Callable, on_purge_circle: Callable = None, on_view_circle: Callable = None, on_purge_all: Callable = None, repo = None):
+    def create_tray_adapter(
+        on_circle_change: Callable,
+        on_purge_circle: Callable = None,
+        on_view_circle: Callable = None,
+        on_purge_all: Callable = None,
+        repo=None,
+    ):
         """Factory: select best available tray adapter."""
         from gyrus.infrastructure.adapters.ui.gnome_app_indicator_adapter import (
             GnomeAppIndicatorAdapter,

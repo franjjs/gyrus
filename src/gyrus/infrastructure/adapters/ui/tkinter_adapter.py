@@ -130,7 +130,7 @@ class TkinterAdapter(UIService):
                 try:
                     if win.winfo_exists():
                         win.destroy()
-                except:
+                except Exception:
                     pass
             TkinterAdapter._active_windows.clear()
             
@@ -198,13 +198,8 @@ class TkinterAdapter(UIService):
         """Try to set window name using wmctrl command for better window manager integration."""
         try:
             import subprocess
-            import os
             
             wid = self.root.winfo_id()
-            if self.mode == "recall":
-                name = f"Gyrus Recall • {self.circle_id}"
-            else:
-                name = f"Gyrus View • {self.circle_id}"
             
             # Try to rename using wmctrl
             subprocess.run(
@@ -249,7 +244,6 @@ class TkinterAdapter(UIService):
         
         # Use wmctrl if available to set the window name in window manager
         try:
-            import subprocess
             self.root.update_idletasks()
             self.root.after(100, self._set_wmctrl_name)
         except Exception:
@@ -560,7 +554,7 @@ class TkinterAdapter(UIService):
                 try:
                     self.root.withdraw()
                     self.root.update_idletasks()
-                except:
+                except Exception:
                     pass
                 self._cleanup_and_close()
             else:
@@ -665,7 +659,7 @@ class TkinterAdapter(UIService):
                 self.root.unbind_all("<Down>")
                 self.root.unbind_all("<Key>")
                 self.root.unbind_all("<Leave>")
-            except:
+            except Exception:
                 pass
             
             # Cancel any pending after() callbacks
@@ -673,7 +667,7 @@ class TkinterAdapter(UIService):
                 if self.after_id:
                     self.root.after_cancel(self.after_id)
                     self.after_id = None
-            except:
+            except Exception:
                 pass
             
             # In recall mode, disable topmost on ALL windows to let target app get focus for paste
@@ -682,7 +676,7 @@ class TkinterAdapter(UIService):
                     try:
                         if win.winfo_exists():
                             win.attributes("-topmost", False)
-                    except:
+                    except Exception:
                         pass
                 if self.root and self.root.winfo_exists():
                     self.root.update_idletasks()
